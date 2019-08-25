@@ -1,0 +1,164 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>SQL Query Generator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+<style>
+.box {
+	display: inline-block;
+	margin: 1em;
+}
+
+.box2 {
+	margin: 1em;
+}
+</style>
+
+</head>
+<body>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app
+				.controller(
+						'sqlCtrl',
+						function($scope, $http, $q) {
+
+							$scope.tables = null;
+							$scope.destTables = null;
+
+							$scope.querySuccessful = null;
+
+							$http.get("/api/v1/tables").then(
+									function(response) {
+										$scope.tables = response.data;
+									}, function(rejection) {
+										console.log(rejection);
+									});
+
+							$scope.submit = function() {
+								$http
+										.post("/api/v1/submitQuery",
+												$scope.data)
+										.then(
+												function(response) {
+													$scope.querySuccessful = true;
+													$scope.successMessage = response.data.message;
+												},
+												function(rejection) {
+
+													console.log(rejection);
+
+													if (rejection.status == 404) {
+														$scope.tableOutput = rejection.data.actual;
+														$scope.sourceTable = rejection.data.source;
+														$scope.destTable = rejection.data.destination;
+														$scope.sourceTableName = rejection.data.sourceTableName;
+														$scope.destinationTableName = rejection.data.destinationTableName;
+														$scope.errorMessage = rejection.data.errorMessage;
+													}
+
+													else {
+														$scope.errorMessage = rejection.data.message;
+														$scope.tableOutput = null;
+													}
+
+													$scope.querySuccessful = false;
+
+												})
+
+							}
+
+						});
+		/*]]>*/
+	</script>
+	<div ng-app="myApp" ng-controller="sqlCtrl">
+
+		<form name="myForm">
+
+			<div class="box2" id="mainContent">
+				<h2>Please enter in the unique ID from the handout you've been
+					given</h2>
+				<input type="id" ng-model="data.participant" required>
+
+				<h2>Please select the problem you're working on</h2>
+				<select ng-model="data.problem" name="source" id="source"
+					class="form-control" required>
+					<option ng-repeat="table in tables">{{table.problemName}}</option>
+				</select> <br>
+
+				<h2>Please enter your proposed query</h2>
+				<textarea rows="1" cols="100" ng-model="data.query" required>Enter your query here</textarea>
+
+				<br> <input type="submit" value="Submit Query"
+					ng-disabled="myForm.$invalid" ng-click="submit()" />
+
+			</div>
+
+
+
+			<div ng-if="querySuccessful != null && querySuccessful===true">
+				{{successMessage}} Please move on to the next one</div>
+
+			<div ng-if="querySuccessful != null && querySuccessful != true">
+
+				<div ng-if="tableOutput != null">
+					<div class="box2">
+						<div class="box2">Unfortunately, your proposed query didn't
+							solve the problem. {{errorMessage}}</div>
+
+
+
+						<br> The table to select from:
+						<tt>{{sourceTableName}}</tt>
+						<table border="1">
+							<tr ng-repeat="row in sourceTable track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+
+					<div class="box">
+						The expected output {{destinationTableName}}:
+						<table border="1">
+							<tr ng-repeat="row in destTable track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+					<div class="box">
+
+						The output returned from your query was:
+						<table border="1">
+							<tr ng-repeat="row in tableOutput track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+
+					<br> Please try again.
+
+
+
+				</div>
+				<div ng-if="errorMessage != null && tableOutput == null">
+					Unfortunately, there was an error in your SQL syntax. The error
+					message generated was:
+					<tt>{{errorMessage}}</tt>
+				</div>
+
+			</div>
+		</form>
+
+
+
+	</div>
+</body>
+</html>
