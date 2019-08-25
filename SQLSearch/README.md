@@ -2,7 +2,7 @@
 
 This part of the project contains SQLSearch, our application built for collecting SQL queries from students.  Similar to work by [Stolee and Elbaum](https://kstolee.github.io/papers/esem2013.pdf), where students were asked to write SQL table examples for a given query, we have students wrie queries corresponding to a given set of table examples.
 
-Students were given ten problems to solve; the problems are shown in a PDF [here](sqlactivity.pdf).  The problems we wrote are based off of the NIH's [UMLS dataset](https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/index.html),
+Students were given ten problems to solve; the problems are shown in a PDF [here](sqlactivity.pdf).  The problems we wrote are based off of the NIH's [UMLS dataset](https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/index.html).
 
 SQLSearch is a Spring Boot project written in Java.  In order to run it, your system needs:
 * Java 8+ (tested on Java 8 and 11, should work on any other recent version)
