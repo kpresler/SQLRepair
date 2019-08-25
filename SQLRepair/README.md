@@ -97,7 +97,7 @@ a
 And the query to repair:
 `select * from table WHERE a = 10;`
 
-Click submit, and you should receive the repaird query `SELECT a FROm table WHERE a = 5`.  SQLRepair recognises that the set of columns provided is wrong and corrects this in addition to the incorrect WHERE clause.
+Click submit, and you should receive the repaird query `SELECT a FROM table WHERE a = 5`.  SQLRepair recognises that the set of columns provided is wrong and corrects this in addition to the incorrect WHERE clause.
 
 
 ### Partial Repairs
