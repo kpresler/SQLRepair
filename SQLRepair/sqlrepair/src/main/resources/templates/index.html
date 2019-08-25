@@ -1,0 +1,109 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>SQL Statement Repairer</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+</head>
+<body>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app
+				.controller(
+						'z3Ctrl',
+						function($scope, $http, $q) {
+
+							$scope.submitted = false;
+
+							$scope.ex = {};
+
+							$scope.ex.examples = [];
+
+							$scope.submit = function() {
+
+								$scope.success = false;
+								$scope.partial = false;
+								$scope.fail = false;
+
+								console.log($scope.ex);
+
+								$http
+										.post("/api/v1/submitExample",
+												$scope.ex)
+										.then(
+												function(response) {
+													$scope.success = true;
+													$scope.submitted = true;
+													$scope.originalStatement = response.data.originalStatement;
+													$scope.newStatement = response.data.newStatement;
+													$scope.diff = response.data.diff;
+
+												},
+												function(error) {
+													$scope.submitted = true;
+
+													if (error.status == 404) {
+														$scope.originalStatement = error.data.originalStatement;
+														$scope.newStatement = error.data.newStatement;
+														$scope.diff = error.data.diff;
+														$scope.partial = true;
+													} else {
+														$scope.fail = true;
+
+														console
+																.log("An unknown error occurred");
+
+														console.log(error);
+													}
+												})
+							}
+
+						});
+		/*]]>*/
+	</script>
+	<div ng-app="myApp" ng-controller="z3Ctrl">
+		<h2>Enter your source table</h2>
+		<textarea rows="10" cols="50" ng-model="ex.examples[0].source">Enter your starting table here</textarea>
+		<br>
+		<h2>Enter your destination table</h2>
+		<textarea rows="10" cols="50" ng-model="ex.examples[0].dest">Enter the table you want to end up with here</textarea>
+		<br> Enter a second example? <input type="checkbox"
+			ng-model="secondExample">
+
+		<div ng-show="secondExample">
+			<h2>(Optional) Enter second source table</h2>
+			<textarea rows="10" cols="50" ng-model="ex.examples[1].source">Enter your starting table here</textarea>
+			<br>
+			<h2>(Optional) Enter second destination table</h2>
+			<textarea rows="10" cols="50" ng-model="ex.examples[1].dest">Enter the table you want to end up with here</textarea>
+			<br>
+		</div>
+
+		<br>
+		<h2>Enter in the SQL statement to repair</h2>
+		<textarea rows="1" cols="100" ng-model="ex.queryToRepair">Enter in a SQL statement to submit for repair</textarea>
+
+		<br> <input type="submit" value="Submit Example"
+			ng-click="submit()" />
+
+		<div ng-if="(success && submitted) || (submitted && partial)">
+			<div ng-if="success">We were able to successfully repair your
+				query to match the example:</div>
+			<div ng-if="partial">A perfect fix couldn't be found, but a
+				partial repair was made:</div>
+
+			<br>Original Statement: {{originalStatement}} <br>Modified
+			Statement: {{newStatement}} <br>Diff: {{diff}}
+
+		</div>
+
+		<div ng-if="submitted && fail">Could not find a match</div>
+
+
+	</div>
+</body>
+</html>
