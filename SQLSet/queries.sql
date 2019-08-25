@@ -1,3 +1,13 @@
+CREATE TABLE `SQLStatements` (
+  `id` bigint(20) NOT NULL,
+  `destinationTable` varchar(255) DEFAULT NULL,
+  `participant` varchar(255) DEFAULT NULL,
+  `sourceTable` varchar(255) DEFAULT NULL,
+  `statement` varchar(255) DEFAULT NULL,
+  `submitTime` datetime(6) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
 INSERT INTO `SQLStatements` (`id`,`destinationTable`,`participant`,`sourceTable`,`statement`,`submitTime`) VALUES (670,'charlied','306','charlie','SELECT * FROM charlie WHERE TFR < 1850 & CFR < 1650','2019-07-11 15:51:13.728000');
 INSERT INTO `SQLStatements` (`id`,`destinationTable`,`participant`,`sourceTable`,`statement`,`submitTime`) VALUES (671,'charlied','306','charlie','SELECT * FROM charlie WHERE TFR < 1850','2019-07-11 15:51:29.536000');
 INSERT INTO `SQLStatements` (`id`,`destinationTable`,`participant`,`sourceTable`,`statement`,`submitTime`) VALUES (673,'charlied','306','charlie','SELECT * FROM charlie WHERE TFR < 1850 %% CFR < 1650','2019-07-11 15:52:09.928000');
