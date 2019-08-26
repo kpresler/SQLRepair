@@ -35,34 +35,49 @@ import net.sf.jsqlparser.schema.Column;
 
 public class Z3Utils {
 
+    /**
+     * Used to represent the name of a constant value we've had the solver
+     * replace. Public to be accessible by the API controller for performing
+     * rewriting later
+     */
     static public final String                S_CONST_VAL     = "statementConstValue";
 
+    /**
+     * Used to represent the name of an operator we've had the solver replace.
+     * Public to be accessible by the API controller for performing rewriting
+     * later
+     */
     static public final String                S_OP_VAL        = "statementOperatorValue";
 
     static private final Map<String, Integer> numbersReplaced = new HashMap<String, Integer>();
 
     static private String getStatementOperator ( final String forWhat ) {
-        if ( null == forWhat ) {
-            throw null;
-        }
         return String.format( "%s::%s", forWhat, S_OP_VAL );
     }
 
     static private String getStatementConstValue ( final String forWhat ) {
-        if ( null == forWhat ) {
-            throw null;
-        }
         if ( !numbersReplaced.containsKey( forWhat ) ) {
-            /*
-             * This is a big enough range that we probably won't get any
-             * collisions
-             */
             numbersReplaced.put( forWhat, (int) ( Math.random() * 100000 ) );
         }
 
         return S_CONST_VAL + numbersReplaced.get( forWhat );
     }
 
+    /**
+     * Recursively handle a nested/compound expression a SQL where clause
+     *
+     * @param ctx
+     *            Context to use
+     * @param rowMatches
+     *            Representation as to whether the current row matches or not
+     * @param columnHeader
+     *            The header of the column to work with
+     * @param sourceValue
+     *            Expression representing the value in the column
+     * @param operator
+     *            Operator to work with from the WHERE clause
+     * @return Updated row matching expression
+     */
     static private BoolExpr nested ( final Context ctx,
             final BoolExpr rowMatches, final String columnHeader,
             final Expr sourceValue, final Expression operator ) {
@@ -105,6 +120,23 @@ public class Z3Utils {
                 "Nested expression type but no match could be found" );
     }
 
+    /**
+     * Attempt to perform a match between the current column and a boolean type.
+     *
+     * @param ctx
+     *            Context to work with
+     * @param cOperator
+     *            The binary comparison operator (= or !=) to work with
+     * @param rightExpression
+     *            The expression on the right side of the operator
+     * @param leftExpression
+     *            The expression on the left side of the operator
+     * @param sourceValue
+     *            Any string value from the table to match on
+     * @param columnHeader
+     *            The header of the column we are considering
+     * @return
+     */
     private static BoolExpr tryBoolean ( final Context ctx,
             final BinaryExpression cOperator, final Expression rightExpression,
             final Expression leftExpression, final Expr sourceValue,
@@ -182,6 +214,24 @@ public class Z3Utils {
         return null;
     }
 
+    /**
+     * Attempt to perform a match between the current column and an integer
+     * type.
+     *
+     * @param ctx
+     *            Context to work with
+     * @param cOperator
+     *            The binary comparison operator (= or !=) to work with
+     * @param rightExpression
+     *            The expression on the right side of the operator
+     * @param leftExpression
+     *            The expression on the left side of the operator
+     * @param sourceValue
+     *            Any string value from the table to match on
+     * @param columnHeader
+     *            The header of the column we are considering
+     * @return
+     */
     private static BoolExpr tryInteger ( final Context ctx,
             final BinaryExpression cOperator, final Expression rightExpression,
             final Expression leftExpression, final Expr sourceValue,
@@ -211,9 +261,6 @@ public class Z3Utils {
             if ( leftExpression instanceof Column
                     && rightExpression instanceof LongValue ) {
 
-                // final IntNum right = ctx.mkInt( ( (LongValue) rightExpression
-                // ).getValue() );
-
                 /* If the column header matches up to what we want */
                 if ( ( (Column) leftExpression ).getColumnName()
                         .equals( columnHeader ) ) {
@@ -235,9 +282,6 @@ public class Z3Utils {
             if ( leftExpression instanceof LongValue
                     && rightExpression instanceof Column ) {
 
-                // final IntNum left = ctx.mkInt( ( (LongValue) leftExpression
-                // ).getValue() );
-
                 if ( ( (Column) rightExpression ).getColumnName()
                         .equals( columnHeader ) ) {
                     return parseSimple( cOperator, stmtCstVal, sourceValue );
@@ -256,6 +300,26 @@ public class Z3Utils {
         return null;
     }
 
+    /**
+     * Attempt to perform a match between the current column and a date type.
+     *
+     * @param ctx
+     *            Context to work with
+     * @param cOperator
+     *            The binary comparison operator (= or !=) to work with
+     * @param rightExpression
+     *            The expression on the right side of the operator
+     * @param leftExpression
+     *            The expression on the left side of the operator
+     * @param sourceValue
+     *            Any string value from the table to match on
+     * @param columnHeader
+     *            The header of the column we are considering
+     * @param isLikeExpression
+     *            Dates can be compared either for strict equality or with like
+     *            checks. This indicates which is which.
+     * @return
+     */
     private static BoolExpr tryDate ( final Context ctx,
             final BinaryExpression cOperator, final Expression rightExpression,
             final Expression leftExpression, final Expr sourceValue,
@@ -398,6 +462,17 @@ public class Z3Utils {
 
     }
 
+    /**
+     * Checks to see if a date is within the range provided.
+     *
+     * @param ctx
+     *            Context
+     * @param date
+     *            Date we are checking
+     * @param rangeWithWildcard
+     *            Expression to check if it's in or not
+     * @return
+     */
     static private BoolExpr dateInRange ( final Context ctx, final Expr date,
             final Expression rangeWithWildcard ) {
 
@@ -464,31 +539,26 @@ public class Z3Utils {
 
     }
 
-    static private String trimQuotes ( final String date ) {
-        return date.substring( 1, date.length() - 1 );
-    }
-
-    static private ZonedDateTime parseDateZDT ( final String date ) {
-        try {
-            return LocalDate.parse( date )
-                    .atStartOfDay( ZoneId.systemDefault() );
-        }
-        catch ( final DateTimeParseException e ) {
-            return null;
-        }
-    }
-
-    private static String parseDateFunction ( final Function function ) {
-
-        switch ( function.toString() ) {
-            case "curdate()":
-                return LocalDateTime.now().toLocalDate().toString();
-            default:
-                return null;
-        }
-
-    }
-
+    /**
+     * Attempt to perform a match between the current column and a string type.
+     *
+     * @param ctx
+     *            Context to work with
+     * @param cOperator
+     *            The binary comparison operator (= or !=) to work with
+     * @param rightExpression
+     *            The expression on the right side of the operator
+     * @param leftExpression
+     *            The expression on the left side of the operator
+     * @param sourceValue
+     *            Any string value from the table to match on
+     * @param columnHeader
+     *            The header of the column we are considering
+     * @param isLikeExpression
+     *            Strings can be compared either for strict equality or with
+     *            like checks. This indicates which is which.
+     * @return
+     */
     private static BoolExpr tryString ( final Context ctx,
             final BinaryExpression cOperator, final Expression rightExpression,
             final Expression leftExpression, final Expr sourceValue,
@@ -774,6 +844,19 @@ public class Z3Utils {
 
     }
 
+    /**
+     * Create a boolean expression representing whether a column value was found
+     * within a list of potential matches
+     *
+     * @param iOperator
+     *            The list of values from the SQL statement
+     * @param sourceValue
+     *            Expression representing the column value that might be in the
+     *            list provided
+     * @param ctx
+     *            Context to use
+     * @return
+     */
     private static BoolExpr parseInStmt ( final InExpression iOperator,
             final Expr sourceValue, final Context ctx ) {
 
@@ -832,31 +915,6 @@ public class Z3Utils {
     static public BoolExpr parseSimple ( final BinaryExpression operator,
             final Expr leftValue, final Expr rightValue ) {
         final Context ctx = Z3Components.getInstance().getContext();
-        //
-        // if ( operator instanceof EqualsTo ) {
-        // return ctx.mkEq( leftValue, rightValue );
-        // }
-        //
-        // if ( operator instanceof NotEqualsTo ) {
-        // return ctx.mkNot( ctx.mkEq( leftValue, rightValue ) );
-        // }
-        //
-        // if ( operator instanceof GreaterThanEquals ) {
-        // return ctx.mkGe( (ArithExpr) leftValue, (ArithExpr) rightValue );
-        // }
-        //
-        // if ( operator instanceof GreaterThan ) {
-        // return ctx.mkGt( (ArithExpr) leftValue, (ArithExpr) rightValue );
-        //
-        // }
-        // if ( operator instanceof MinorThan ) {
-        // return ctx.mkLt( (ArithExpr) leftValue, (ArithExpr) rightValue );
-        // }
-        //
-        // if ( operator instanceof MinorThanEquals ) {
-        // return ctx.mkLe( (ArithExpr) leftValue, (ArithExpr) rightValue );
-        // }
-        //
         if ( operator instanceof LikeExpression
                 || ( leftValue instanceof SeqExpr
                         || rightValue instanceof SeqExpr )
@@ -864,13 +922,24 @@ public class Z3Utils {
                         || rightValue instanceof BoolExpr ) ) {
             return ctx.mkEq( leftValue, rightValue );
         }
-        //
-        // throw new IllegalArgumentException( "Cannot find matching operator
-        // for " + operator );
 
         return parseSimpleAll( operator, leftValue, rightValue );
     }
 
+    /**
+     * This handles the magic of repair for incorrect operators in a query by
+     * building up constraints indicating all possible operators and having the
+     * solver figure out which one works.
+     *
+     * @param operator
+     *            Base operator we are replacing, used to create a name so that
+     *            we can refer to things later
+     * @param leftValue
+     *            Left value of the operator
+     * @param rightValue
+     *            Right value of the operator
+     * @return
+     */
     static private BoolExpr parseSimpleAll ( final BinaryExpression operator,
             final Expr leftValue, final Expr rightValue ) {
 
@@ -962,6 +1031,8 @@ public class Z3Utils {
         return false;
     }
 
+    /* Helper functions for dates */
+
     /**
      * Check to see if either of the expressions we've been given is a Date as
      * SQL understands it.
@@ -996,6 +1067,31 @@ public class Z3Utils {
 
     static private Long parseDate ( final String date ) {
         return parseDateZDT( date ).toEpochSecond();
+    }
+
+    static private String trimQuotes ( final String date ) {
+        return date.substring( 1, date.length() - 1 );
+    }
+
+    static private ZonedDateTime parseDateZDT ( final String date ) {
+        try {
+            return LocalDate.parse( date )
+                    .atStartOfDay( ZoneId.systemDefault() );
+        }
+        catch ( final DateTimeParseException e ) {
+            return null;
+        }
+    }
+
+    private static String parseDateFunction ( final Function function ) {
+
+        switch ( function.toString() ) {
+            case "curdate()":
+                return LocalDateTime.now().toLocalDate().toString();
+            default:
+                return null;
+        }
+
     }
 
 }

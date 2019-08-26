@@ -5,6 +5,13 @@ import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+/**
+ * Date datatype for Z3. Stored both as a String to that it is human-readable
+ * and a Long (standard epoch time).
+ *
+ * @author Kai Presler-Marshall
+ *
+ */
 public class Z3Date extends Z3Type {
 
     private final Long   value;
@@ -12,7 +19,8 @@ public class Z3Date extends Z3Type {
     private final String dateString;
 
     public Z3Date ( final String date ) throws ParseException {
-        this.value = LocalDate.parse( date ).atStartOfDay( ZoneId.systemDefault() ).toEpochSecond();
+        this.value = LocalDate.parse( date )
+                .atStartOfDay( ZoneId.systemDefault() ).toEpochSecond();
         this.dateString = date;
     }
 
@@ -66,6 +74,9 @@ public class Z3Date extends Z3Type {
         return true;
     }
 
+    /**
+     * Compare on the long version because it's more universal
+     */
     @Override
     public int compareTo ( final Z3Type o ) {
         return value.compareTo( (Long) o.getValue() );

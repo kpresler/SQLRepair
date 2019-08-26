@@ -19,7 +19,7 @@ import edu.ncsu.sqlrepair.z3components.Z3Utils;
  * need to call `parse()` on it to actually split things apart and fill in the
  * other variables
  *
- * @author kai
+ * @author Kai Presler-Marshall
  *
  */
 public class SQLTableExample {
@@ -84,8 +84,9 @@ public class SQLTableExample {
          * Trim and filter out empty string to be a bit more forgiving of bad
          * formating of the input data
          */
-        sourceHeaders = Arrays.asList( sourceLines[0].split( " " ) ).stream().map( e -> e.trim() )
-                .filter( e -> !e.isEmpty() ).collect( Collectors.toList() );
+        sourceHeaders = Arrays.asList( sourceLines[0].split( " " ) ).stream()
+                .map( e -> e.trim() ).filter( e -> !e.isEmpty() )
+                .collect( Collectors.toList() );
 
         sourceValues = new ArrayList<>();
 
@@ -98,8 +99,10 @@ public class SQLTableExample {
         for ( int i = 1; i < sourceLines.length; i++ ) {
 
             // Clean the row
-            final List<String> cleanedRow = Arrays.asList( sourceLines[i].split( "\\s+" ) ).stream()
-                    .map( e -> e.trim() ).filter( e -> !e.isEmpty() ).collect( Collectors.toList() );
+            final List<String> cleanedRow = Arrays
+                    .asList( sourceLines[i].split( "\\s+" ) ).stream()
+                    .map( e -> e.trim() ).filter( e -> !e.isEmpty() )
+                    .collect( Collectors.toList() );
             cleanedRows.add( cleanedRow );
 
         }
@@ -135,7 +138,8 @@ public class SQLTableExample {
             for ( int j = 0; j < cleanedRow.size(); j++ ) {
                 // parse that element based on the type we found of the column
                 // it belongs to
-                row.add( Z3Type.parse( cleanedRow.get( j ), typeForColumn.get( j ) ) );
+                row.add( Z3Type.parse( cleanedRow.get( j ),
+                        typeForColumn.get( j ) ) );
             }
 
             sourceValues.add( row );
@@ -151,8 +155,9 @@ public class SQLTableExample {
          * Trim and filter out empty string to be a bit more forgiving of bad
          * formating of the input data
          */
-        destHeaders = Arrays.asList( destLines[0].split( " " ) ).stream().map( e -> e.trim() )
-                .filter( e -> !e.isEmpty() ).collect( Collectors.toList() );
+        destHeaders = Arrays.asList( destLines[0].split( " " ) ).stream()
+                .map( e -> e.trim() ).filter( e -> !e.isEmpty() )
+                .collect( Collectors.toList() );
 
         destValues = new ArrayList<>();
 
@@ -164,8 +169,10 @@ public class SQLTableExample {
         for ( int i = 1; i < destLines.length; i++ ) {
 
             // Clean the row
-            final List<String> cleanedRow = Arrays.asList( destLines[i].split( "\\s+" ) ).stream().map( e -> e.trim() )
-                    .filter( e -> !e.isEmpty() ).collect( Collectors.toList() );
+            final List<String> cleanedRow = Arrays
+                    .asList( destLines[i].split( "\\s+" ) ).stream()
+                    .map( e -> e.trim() ).filter( e -> !e.isEmpty() )
+                    .collect( Collectors.toList() );
 
             cleanedRows.add( cleanedRow );
 
@@ -197,7 +204,8 @@ public class SQLTableExample {
             final List<Z3Type> row = new ArrayList<Z3Type>();
 
             for ( int j = 0; j < cleanedRow.size(); j++ ) {
-                row.add( Z3Type.parse( cleanedRow.get( j ), typeForColumn.get( j ) ) );
+                row.add( Z3Type.parse( cleanedRow.get( j ),
+                        typeForColumn.get( j ) ) );
             }
 
             destValues.add( row );

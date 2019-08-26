@@ -1,5 +1,11 @@
 package edu.ncsu.sqlrepair.datatypes;
 
+/**
+ * String datatype for Z3.
+ * 
+ * @author Kai Presler-Marshall
+ *
+ */
 public class Z3String extends Z3Type {
 
     private final String value;

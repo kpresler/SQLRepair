@@ -2,6 +2,12 @@ package edu.ncsu.sqlrepair.datatypes;
 
 import java.io.Serializable;
 
+/**
+ * Boolean datatype for Z3. Can be either `true` or `false`
+ * 
+ * @author Kai Presler-Marshall
+ *
+ */
 public class Z3Bool extends Z3Type {
 
     @Override

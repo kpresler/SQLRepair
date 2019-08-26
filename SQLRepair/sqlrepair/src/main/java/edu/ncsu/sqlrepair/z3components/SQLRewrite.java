@@ -6,24 +6,58 @@ import java.util.Map;
 /**
  * Represents a SQL statement that has potentially been rewritten
  *
- * @author kai
+ * @author Kai Presler-Marshall
  *
  */
 public class SQLRewrite {
 
+    /**
+     * Original SQL query before any fixing has happened
+     */
     private String  originalStatement;
 
+    /**
+     * New statement, with any changes made
+     */
     private String  newStatement;
 
+    /**
+     * Whether a match was found or not
+     */
     private Boolean found;
 
+    /**
+     * The difference between the original and new statements
+     */
     private String  diff;
 
+    /**
+     * Whether we changed anything, defined as
+     * !(originalStatement.equals(newStatement))
+     */
     private Boolean wasChanged;
 
-    public SQLRewrite ( final String original ) {
-        this.originalStatement = original;
+    public void update ( final String newS, final Boolean found ) {
+        if ( null == newS ) {
+            this.newStatement = null;
+            this.found = false;
+            this.diff = null;
+            this.wasChanged = false;
 
+            return;
+
+        }
+
+        if ( newS.equals( this.originalStatement ) ) {
+            wasChanged = false;
+        }
+        else {
+            this.newStatement = newS;
+            this.diff = diff( this.originalStatement, this.newStatement )
+                    .toString();
+        }
+
+        this.found = found;
     }
 
     public String getCurrentStatement () {
@@ -78,30 +112,15 @@ public class SQLRewrite {
                 + ", diff=" + diff + ", wasChanged=" + wasChanged + "]";
     }
 
-    public void update ( final String newS, final Boolean found ) {
-        if ( null == newS ) {
-            this.newStatement = null;
-            this.found = false;
-            this.diff = null;
-            this.wasChanged = false;
+    public SQLRewrite ( final String original ) {
+        this.originalStatement = original;
 
-            return;
-
-        }
-
-        if ( newS.equals( this.originalStatement ) ) {
-            wasChanged = false;
-        }
-        else {
-            this.newStatement = newS;
-            this.diff = diff( this.originalStatement, this.newStatement )
-                    .toString();
-        }
-
-        this.found = found;
     }
 
-    /* https://stackoverflow.com/a/52743737/9275267 */
+    /*
+     * Approach for computing a minimal diff between two strings comes from
+     * https://stackoverflow.com/a/52743737/9275267
+     */
 
     /**
      * Returns a minimal set of characters that have to be removed from (or

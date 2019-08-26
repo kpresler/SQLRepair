@@ -1,5 +1,11 @@
 package edu.ncsu.sqlrepair.models;
 
+/**
+ * Represents a SQL query to attempt to repair
+ * 
+ * @author Kai Presler-Marshall
+ *
+ */
 public class SQLStatement {
 
     private String statement;

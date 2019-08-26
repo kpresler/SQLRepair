@@ -1,5 +1,11 @@
 package edu.ncsu.sqlrepair.datatypes;
 
+/**
+ * Integer datatype for Z3. Supports positive and negative values.
+ * 
+ * @author Kai Presler-Marshall
+ *
+ */
 public class Z3Int extends Z3Type {
 
     private final Integer value;
