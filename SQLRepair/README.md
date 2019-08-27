@@ -102,3 +102,8 @@ Click submit, and you should receive the repaird query `SELECT a FROM table WHER
 
 ### Partial Repairs
 SQLRepair cannot fix all mistakes, due to unsupported functionality or wildly broken syntax.  However, it can still make partial syntax repairs even in such cases.
+
+## Supported Syntax
+
+SQLRepair does not attempt to support the entirety of the SQL language.  Notably, nested statements and joins are unsupported.  What we do support is shown in the following context-free grammar (CFG):
+![SQLRepair CFG](cfg.png)
