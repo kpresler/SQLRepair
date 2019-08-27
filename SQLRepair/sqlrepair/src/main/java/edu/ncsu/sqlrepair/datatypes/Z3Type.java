@@ -76,18 +76,22 @@ public abstract class Z3Type implements Comparable<Z3Type> {
      */
     @SuppressWarnings ( "unchecked" )
     static public Class<Z3Type> findType ( final List<String> values ) {
-        final List<Z3Type> parsedValues = values.stream().map( e -> parse( e ) ).collect( Collectors.toList() );
+        final List<Z3Type> parsedValues = values.stream().map( e -> parse( e ) )
+                .collect( Collectors.toList() );
 
-        // Promote upwards: Int -> Bool -> Date -> String. Technically date and
-        // bool can go in either order, but both are less constrained than int
-        // but more than String
+        // Promote upwards: (Int | Bool | Date) -> String. We'd like to be able
+        // to use the more specific classes (because there's more you can do
+        // with a number than a string) but we have to deal with that we don't
+        // have provided types for each column.
         Class< ? > mostGeneralType = Z3Int.class;
         for ( final Z3Type value : parsedValues ) {
-            if ( mostGeneralType.equals( Z3Int.class ) && value.getDataClass().equals( Boolean.class ) ) {
+            if ( mostGeneralType.equals( Z3Int.class )
+                    && value.getDataClass().equals( Boolean.class ) ) {
                 mostGeneralType = Z3Bool.class;
             }
 
-            if ( ( mostGeneralType.equals( Z3Int.class ) || mostGeneralType.equals( Z3Bool.class ) )
+            if ( ( mostGeneralType.equals( Z3Int.class )
+                    || mostGeneralType.equals( Z3Bool.class ) )
                     && value.getDataClass().equals( Long.class ) ) {
                 mostGeneralType = Z3Date.class;
             }
@@ -119,10 +123,10 @@ public abstract class Z3Type implements Comparable<Z3Type> {
     }
 
     /**
-     * Try to parse a String into a Boolean, then wrap it for our use. Java's
-     * dumb and parsing anything other than `true` will give you a boolean
-     * representing `false`, which is obviously not what we want, so we have to
-     * check that first.
+     * Try to parse a String into a Boolean, then wrap it for our use. Java will
+     * happily parse anything other than `true` into a boolean representing
+     * `false`, which is obviously not what we want, so we have to check that
+     * first.
      *
      * @param s
      *            String to parse
@@ -130,9 +134,10 @@ public abstract class Z3Type implements Comparable<Z3Type> {
      */
     static protected Z3Bool asBool ( final String s ) {
         try {
-            return ( s.equalsIgnoreCase( "true" ) || s.equalsIgnoreCase( "false" ) )
-                    ? new Z3Bool( Boolean.parseBoolean( s ) )
-                    : null;
+            return ( s.equalsIgnoreCase( "true" )
+                    || s.equalsIgnoreCase( "false" ) )
+                            ? new Z3Bool( Boolean.parseBoolean( s ) )
+                            : null;
 
         }
         catch ( final Exception e ) {
@@ -140,10 +145,24 @@ public abstract class Z3Type implements Comparable<Z3Type> {
         }
     }
 
+    /**
+     * Turn a String into our Z3String. Not much that needs to be done here.
+     * 
+     * @param s
+     *            String to parse
+     * @return Z3String, always will get this, can never fail
+     */
     static protected Z3String asString ( final String s ) {
         return new Z3String( s );
     }
 
+    /**
+     * Attempt to parse the String provided as a date for Z3 to use. Returns
+     * null if it isn't valid to interpret as a date.
+     * 
+     * @param s
+     * @return
+     */
     static protected Z3Date asDate ( final String s ) {
         try {
             return new Z3Date( s );

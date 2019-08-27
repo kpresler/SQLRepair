@@ -11,6 +11,12 @@ import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 
+/**
+ * Visitor for the JSQLParser. Called when we traverse the SQL statement.
+ *
+ * @author Kai Presler-Marshall
+ *
+ */
 public class SelectStatementVisitor extends StatementVisitorAdapter {
 
     @Override
@@ -24,13 +30,15 @@ public class SelectStatementVisitor extends StatementVisitorAdapter {
         /* Figure out what we're working with here */
         final PlainSelect selectBody = (PlainSelect) select.getSelectBody();
 
-        final Integer exampleNumber = Integer.valueOf( Z3Utils.get( "exampleIndex" ).toString() );
+        final Integer exampleNumber = Integer
+                .valueOf( Z3Utils.get( "exampleIndex" ).toString() );
 
         /* The column we're trying to match on */
         final String columnHeader = Z3Utils.get( "columnHeader" ).toString();
 
         /* Retrieve the source values (input to expression) */
-        final FuncDecl sourceValues = z3.getSrcColumn( exampleNumber, (Integer) Z3Utils.get( "columnNum" ), null );
+        final FuncDecl sourceValues = z3.getSrcColumn( exampleNumber,
+                (Integer) Z3Utils.get( "columnNum" ), null );
 
         final Integer row = (Integer) Z3Utils.get( "row" );
 
@@ -38,8 +46,12 @@ public class SelectStatementVisitor extends StatementVisitorAdapter {
 
         final Expr domainValue = sourceValues.apply( ctx.mkInt( row ) );
 
-        final BoolExpr updatedRowMatches = Z3Utils.createBoolFromArithmetic( rowMatches, columnHeader, domainValue,
-                selectBody.getWhere() );
+        /*
+         * Figure out whether or not we need to change our expression from the
+         * current statement and column combination we are visiting
+         */
+        final BoolExpr updatedRowMatches = Z3Utils.createBoolFromArithmetic(
+                rowMatches, columnHeader, domainValue, selectBody.getWhere() );
 
         if ( null != updatedRowMatches ) {
             z3.storeRow( exampleNumber, row, updatedRowMatches );

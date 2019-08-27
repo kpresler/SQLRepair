@@ -12,10 +12,10 @@ import com.microsoft.z3.Symbol;
 
 /**
  * Singleton class used to maintain a reference to our Z3 solver and context
- * over which all objects are created. Also used to sore objects that we'll need
- * to have access to in both the SQL visitor and our own methods.
+ * over which all objects are created. Also used to store objects that we'll
+ * need to have access to in both the SQL visitor and our own methods.
  *
- * @author kai
+ * @author Kai Presler-Marshall
  *
  */
 @SuppressWarnings ( "rawtypes" )
@@ -58,12 +58,17 @@ public class Z3Components {
      */
     Map<String, FuncDecl>       destZ3TableColumns = new HashMap<String, FuncDecl>();
 
+    /*
+     * Functions for accessing the maps above, with getters to automatically
+     * create what we need if it doesn't exist already
+     */
+
     public FuncDecl getSrcColumn ( final Integer exampleNumber,
             final Integer column, final Class typeOfColumn ) {
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
 
-        FuncDecl columnFunc = srcZ3TableColumns.get( modifiedColumnNumber );
+        FuncDecl columnFunc = srcZ3TableColumns.get( exampleAndColumn );
 
         if ( null == columnFunc ) {
             final Symbol srcValues = ctx.mkSymbol(
@@ -72,7 +77,7 @@ public class Z3Components {
             columnFunc = ctx.mkFuncDecl( srcValues, ctx.getIntSort(),
                     getSort( typeOfColumn ) );
 
-            srcZ3TableColumns.put( modifiedColumnNumber, columnFunc );
+            srcZ3TableColumns.put( exampleAndColumn, columnFunc );
         }
 
         return columnFunc;
@@ -81,17 +86,17 @@ public class Z3Components {
 
     public void putSrcColumn ( final Integer exampleNumber,
             final Integer column, final FuncDecl func ) {
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
-        srcZ3TableColumns.put( modifiedColumnNumber, func );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
+        srcZ3TableColumns.put( exampleAndColumn, func );
     }
 
     public FuncDecl getIntColumn ( final Integer exampleNumber,
             final Integer column, final Class typeOfColumn ) {
 
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
-        FuncDecl columnFunc = intZ3TableColumns.get( modifiedColumnNumber );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
+        FuncDecl columnFunc = intZ3TableColumns.get( exampleAndColumn );
 
         if ( null == columnFunc ) {
             final Symbol intermediateValues = ctx
@@ -101,7 +106,7 @@ public class Z3Components {
             columnFunc = ctx.mkFuncDecl( intermediateValues, ctx.getIntSort(),
                     getSort( typeOfColumn ) );
 
-            intZ3TableColumns.put( modifiedColumnNumber, columnFunc );
+            intZ3TableColumns.put( exampleAndColumn, columnFunc );
         }
 
         return columnFunc;
@@ -110,16 +115,16 @@ public class Z3Components {
 
     public void putIntColumn ( final Integer exampleNumber,
             final Integer column, final FuncDecl func ) {
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
-        intZ3TableColumns.put( modifiedColumnNumber, func );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
+        intZ3TableColumns.put( exampleAndColumn, func );
     }
 
     public FuncDecl getDestColumn ( final Integer exampleNumber,
             final Integer column, final Class typeOfColumn ) {
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
-        FuncDecl columnFunc = destZ3TableColumns.get( modifiedColumnNumber );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
+        FuncDecl columnFunc = destZ3TableColumns.get( exampleAndColumn );
 
         if ( null == columnFunc ) {
             final Symbol destinationValues = ctx.mkSymbol(
@@ -128,7 +133,7 @@ public class Z3Components {
             columnFunc = ctx.mkFuncDecl( destinationValues, ctx.getIntSort(),
                     getSort( typeOfColumn ) );
 
-            destZ3TableColumns.put( modifiedColumnNumber, columnFunc );
+            destZ3TableColumns.put( exampleAndColumn, columnFunc );
         }
 
         return columnFunc;
@@ -137,9 +142,9 @@ public class Z3Components {
 
     public void putDestColumn ( final Integer exampleNumber,
             final Integer column, final FuncDecl func ) {
-        final String modifiedColumnNumber = String.format( "%d_%d",
-                exampleNumber, column );
-        destZ3TableColumns.put( modifiedColumnNumber, func );
+        final String exampleAndColumn = String.format( "%d_%d", exampleNumber,
+                column );
+        destZ3TableColumns.put( exampleAndColumn, func );
     }
 
     public BoolExpr getRow ( final Integer exampleNumber, final Integer row ) {
@@ -194,11 +199,9 @@ public class Z3Components {
     }
 
     private Sort getSort ( final Class cls ) {
-        // hopefully this is fine
         if ( null == cls ) {
             return null;
         }
-
         if ( cls.equals( Boolean.class ) ) {
             return ctx.getBoolSort();
         }

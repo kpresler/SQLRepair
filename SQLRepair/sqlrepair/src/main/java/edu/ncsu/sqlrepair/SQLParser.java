@@ -8,13 +8,20 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statements;
 
+/**
+ * Parser for SQL queries. Uses JSQLParser to ensure that we don't waste time on
+ * something with syntax errors.
+ *
+ * @author Kai Presler-Marshall
+ *
+ */
 public class SQLParser {
 
     private Statements sqlStatements;
 
     /**
      * Private to force users to use a constructor that will actually initialize
-     * things
+     * things but still allows us to use a single path of construction.
      */
     private SQLParser () {
 

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.Gson;
 import com.microsoft.z3.BoolExpr;
 import com.microsoft.z3.Context;
 import com.microsoft.z3.Expr;
@@ -42,20 +41,34 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
+/**
+ * Main controller class for the SQLRepair application. Handles receiving a
+ * broken query and examples from a user and returning a corrected version
+ *
+ * @author Kai Presler-Marshall
+ *
+ */
 @RestController
 @SuppressWarnings ( "rawtypes" )
 public class APIZ3Controller extends APIController {
 
-    static private final Gson GSON = new Gson();
-
+    /**
+     * Main API endpoint. Receives a SQLTableExamples class that consists of one
+     * or more examples to use for the repair process together with the query to
+     * attempt repair on.
+     *
+     * @param examples
+     *            Query and examples to perform repair with
+     * @return
+     */
     @SuppressWarnings ( "unchecked" )
     @PostMapping ( BASE_PATH + "submitExample" )
     public ResponseEntity submitExample (
             final @RequestBody SQLTableExamples examples ) {
 
-        final Boolean badExamples = false;
-
-        System.out.println( "Received " + examples );
+        if ( debug ) {
+            System.out.println( "Received " + examples );
+        }
 
         /*
          * Parse each of the examples from the user, preemptively returning an
@@ -75,6 +88,7 @@ public class APIZ3Controller extends APIController {
 
         }
 
+        /* Convert into our version that supports rewriting and diffs */
         final SQLRewrite possibleMatch = new SQLRewrite(
                 examples.getQueryToRepair() );
         Boolean found = true;
@@ -89,12 +103,14 @@ public class APIZ3Controller extends APIController {
             return new ResponseEntity( possibleMatch, HttpStatus.OK );
 
         }
+        /* Thrown by the parser if there was an uncorrectable error */
         catch ( final JSQLParserException e ) {
             return new ResponseEntity(
                     errorResponse( "Uncorrectable syntax error" ),
                     HttpStatus.BAD_REQUEST );
 
         }
+        /* Other issues */
         catch ( final Exception e ) {
             return new ResponseEntity(
                     errorResponse( "Unknown error occurred" ),
@@ -103,6 +119,12 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Attempt syntax repairs on the query provided.
+     *
+     * @param sql
+     *            The query to fix.
+     */
     private final void fixSyntax ( final SQLRewrite sql ) {
         String currentStatement = sql.getCurrentStatement();
         Boolean wasChanged = false;
@@ -132,6 +154,11 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Parse query to ensure there are no syntax errors in it
+     *
+     * @param sql
+     */
     private final void parse ( final SQLRewrite sql ) {
         try {
             sql.setNewStatement( new SQLParser( sql.getCurrentStatement() )
@@ -143,11 +170,24 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Attempt to find a match by repairing the query provided.
+     *
+     * @param examples
+     *            Examples
+     * @param sql
+     * @return
+     * @throws JSQLParserException
+     */
     private boolean findSQLMatch ( final SQLTableExamples examples,
             final SQLRewrite sql ) throws JSQLParserException {
         final Context ctx = new Context();
         final Solver s = ctx.mkSolver();
 
+        /*
+         * Store our solver and context so that our parser code can access it
+         * too
+         */
         Z3Components.initialize( ctx, s );
 
         final Z3Components z3 = Z3Components.getInstance();
@@ -184,7 +224,8 @@ public class APIZ3Controller extends APIController {
 
             /*
              * Handle the DISTINCT operator, if provided, by removing subsequent
-             * occurrences of each row
+             * occurrences of each row. We want to remove _subsequent_ instances
+             * to ensure that ordering is OK.
              */
             final Boolean isDistinct = null != ( (PlainSelect) statement
                     .getSelectBody() ).getDistinct();
@@ -224,6 +265,7 @@ public class APIZ3Controller extends APIController {
              */
             final Integer numRows = srcVals.size();
 
+            /* Figure out if the query contains an ORDER BY statement */
             final List<OrderByElement> order = ( (PlainSelect) statement
                     .getSelectBody() ).getOrderByElements();
             if ( null != order ) {
@@ -366,10 +408,10 @@ public class APIZ3Controller extends APIController {
 
             if ( !sel.getSelectItems().isEmpty() && sel.getSelectItems()
                     .get( 0 ) instanceof SelectExpressionItem ) {
-                final SelectExpressionItem sel_ = (SelectExpressionItem) sel
+                final SelectExpressionItem selItem = (SelectExpressionItem) sel
                         .getSelectItems().get( 0 );
 
-                if ( sel_.getExpression() instanceof Function ) {
+                if ( selItem.getExpression() instanceof Function ) {
 
                     count = true;
                 }
@@ -542,7 +584,7 @@ public class APIZ3Controller extends APIController {
 
         /*
          * Check if all of the constraints are solvable. This applies to _every_
-         * example
+         * example. Print out extra information to the console if prompted.
          */
         System.out.println( "Solving...." );
         if ( s.check().equals( Status.SATISFIABLE ) ) {
@@ -565,6 +607,7 @@ public class APIZ3Controller extends APIController {
 
             }
             try {
+                // use the model to go update our statement
                 updateStatement( model, sql );
             }
             catch ( final Exception e ) {
@@ -593,6 +636,15 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Update our SQL query using the information from the model that Z3
+     * returns.
+     *
+     * @param model
+     *            Model from Z3 representing what it figured out
+     * @param sql
+     *            SQL query to update
+     */
     private void updateStatement ( final Model model, final SQLRewrite sql ) {
 
         final String originalStatement = sql.getCurrentStatement();
@@ -678,6 +730,15 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Figure out the appropriate SQL operator to insert based on the model that
+     * was generated
+     *
+     * @param z3FuncDecl
+     *            The function declaration that we told the model to figure out
+     *            truthyness of
+     * @return Corresponding SQL operator
+     */
     private String findOperator ( final String z3FuncDecl ) {
         if ( z3FuncDecl.contains( "GTE" ) ) {
             return ">=";
@@ -702,6 +763,15 @@ public class APIZ3Controller extends APIController {
 
     }
 
+    /**
+     * Create an Expression for the value provided
+     *
+     * @param ctx
+     *            Context to create the Expression in
+     * @param value
+     *            Value to use
+     * @return
+     */
     private Expr makeZ3Expr ( final Context ctx, final Z3Type value ) {
         if ( value.getDataClass().equals( Integer.class ) ) {
             return ctx.mkInt( (Integer) value.getValue() );
@@ -721,6 +791,18 @@ public class APIZ3Controller extends APIController {
         }
     }
 
+    /**
+     * Fix the columns to be returned by the SQL query based on the examples
+     * that were provided of what the user wishes to achieve.
+     *
+     * @param statement
+     *            The original query to repair
+     * @param example
+     *            Example from the user of the transformation to perform
+     * @param sql
+     *            Updated version of the query
+     * @return Did we change anything or not? True iff so.
+     */
     private boolean modifyColumns ( final Select statement,
             final SQLTableExample example, final SQLRewrite sql ) {
         // if (headers in source!=headers in dest && SELECT *) replace
@@ -797,6 +879,12 @@ public class APIZ3Controller extends APIController {
         return false;
     }
 
+    /**
+     * Trim first and last characters from string
+     * 
+     * @param str
+     * @return
+     */
     final private String trimString ( final String str ) {
         return str.substring( 1, str.length() - 1 );
     }
