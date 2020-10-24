@@ -1,0 +1,456 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>SQL Query Generator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<style>
+.box {
+	display: inline-block;
+	margin: 1em;
+}
+
+.box2 {
+	margin: 1em;
+}
+</style>
+
+<script
+	src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+
+<!-- Font Awesome -->
+<link rel="stylesheet"
+	href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+<!-- Google Fonts -->
+<link rel="stylesheet"
+	href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+<!-- Bootstrap core CSS -->
+<link
+	href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
+	rel="stylesheet">
+<!-- Material Design Bootstrap -->
+<link
+	href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.12.0/css/mdb.min.css"
+	rel="stylesheet">
+
+
+<!-- JQuery -->
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<!-- Bootstrap tooltips -->
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.4/umd/popper.min.js"></script>
+<!-- Bootstrap core JavaScript -->
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script>
+<!-- MDB core JavaScript -->
+<script type="text/javascript"
+	src="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.12.0/js/mdb.min.js"></script>
+
+
+
+</head>
+<body>
+
+	<script>
+		/*<![CDATA[*/
+		var app = angular.module('myApp', []);
+		app
+				.controller(
+						'sqlCtrl',
+						function($scope, $http, $q, $window) {
+
+							$scope.model = {};
+
+							$scope.tables = null;
+
+							$scope.querySuccessful = null;
+							$scope.answeredPreference = false;
+
+							$scope.querys = [ ];
+
+							$scope.serverResponse = {};
+
+							$scope.votingAnswers = {};
+							
+							
+							$http.get("/api/v1/myId").then(function(response){
+								$scope.data = $scope.data || {};
+								$scope.data.participant = response.data;
+							});
+
+							$http.get("/api/v1/tables").then(
+									function(response) {
+										$scope.tables = response.data;
+									}, function(rejection) {
+										console.log(rejection);
+									});
+
+							$scope.preferredQuery = false;
+
+							$scope.shuffle = function() {
+								console.log("Randomising voting options");
+								var ul = document
+										.getElementById('votingOptions');
+								for (var i = ul.children.length; i >= 0; i--) {
+									ul.appendChild(ul.children[Math.random()
+											* i | 0]);
+								}
+							};
+
+							$scope.submit = function() {
+								
+								$http
+										.post("/api/v1/submitQuery",
+												$scope.data)
+										.then(
+												function(response) {
+													$scope.querySuccessful = true;
+													$scope.successMessage = response.data.message;
+
+													$scope.serverResponse = response.data;
+
+													console
+															.log($scope.serverResponse);
+													
+													
+													if ($scope.serverResponse.votingOptions.displayA == true){
+														$scope.querys.push("Query A");
+													}
+													if ($scope.serverResponse.votingOptions.displayB == true){
+														$scope.querys.push("Query B");
+													}
+													if ($scope.serverResponse.votingOptions.displayC == true){
+														$scope.querys.push("Query C");
+													}
+													if ($scope.serverResponse.votingOptions.displayD == true){
+														$scope.querys.push("Query D");
+													}
+													
+													$scope.$apply();
+												},
+												function(rejection) {
+													console.log(rejection);
+													$scope.canRequestToVote = rejection.data.canRequestToVote;
+
+													if (rejection.status == 404) {
+														$scope.tableOutput = rejection.data.actual;
+														$scope.sourceTable = rejection.data.source;
+														$scope.destTable = rejection.data.destination;
+														$scope.sourceTableName = rejection.data.sourceTableName;
+														$scope.destinationTableName = rejection.data.destinationTableName;
+														$scope.errorMessage = rejection.data.errorMessage;
+
+													}
+
+													else {
+														clearTables();
+														$scope.errorMessage = rejection.data.errorMessage;
+													}
+
+													$scope.querySuccessful = false;
+
+												})
+
+							}
+
+							$scope.submitPref = function() {
+								$scope.answeredPreference = true;
+
+								$scope.votingAnswers.participant = $scope.data.participant;
+								$scope.votingAnswers.problem = $scope.data.problem;
+								$scope.votingAnswers.repairedQuery = $scope.serverResponse.votingOptions.repairedQuery;
+								$scope.votingAnswers.otherQuery = $scope.serverResponse.votingOptions.correctQuery;
+								$scope.votingAnswers.myCorrectQuery = $scope.serverResponse.votingOptions.myCorrect;
+								$scope.votingAnswers.myRepairedQuery = $scope.serverResponse.votingOptions.myRepaired;
+
+								$http
+										.post("/api/v1/submitVote",
+												$scope.votingAnswers)
+										.then(
+												function(response) {
+													console
+															.log("Submitted successfully");
+													$window.location.reload();
+												},
+												function(rejection) {
+													console
+															.log("Something bad happened & we're not sure what");
+													$window.location.reload();
+												});
+
+								$scope.reset()
+							}
+
+							$scope.reset = function() {
+								$scope.serverResponse = undefined;
+								$scope.votingAnswers = undefined;
+								$scope.data.problem = undefined;
+								$scope.data.query = undefined;
+								$scope.canRequestToVote = undefined;
+								$scope.answeredPreference = false;
+								clearTables();
+							}
+
+							function clearTables() {
+								$scope.tableOutput = undefined;
+								$scope.sourceTable = undefined;
+								$scope.destTable = undefined;
+								$scope.destinationTableName = undefined;
+								$scope.sourceTableName = undefined;
+								$scope.errorMessage = undefined;
+							}
+
+							$scope.tired = function() {
+								var url = "/api/v1/requestQueries/"
+										+ $scope.data.participant + "/"
+										+ $scope.data.problem;
+								$http
+										.post(url)
+										.then(
+												function(response) {
+													$scope.serverResponse = $scope.serverResponse
+															|| {};
+													$scope.serverResponse.votingOptions = response.data;
+													$scope.serverResponse.voting = true;
+													$scope.canRequestToVote = undefined;
+													clearTables();
+													
+													if ($scope.serverResponse.votingOptions.displayA == true){
+														$scope.querys.push("Query A");
+													}
+													if ($scope.serverResponse.votingOptions.displayB == true){
+														$scope.querys.push("Query B");
+													}
+													if ($scope.serverResponse.votingOptions.displayC == true){
+														$scope.querys.push("Query C");
+													}
+													if ($scope.serverResponse.votingOptions.displayD == true){
+														$scope.querys.push("Query D");
+													}
+													
+													
+													console
+															.log("Submitted successfully")
+												},
+												function(rejection) {
+													console
+															.log("Something bad happened & we're not sure what");
+												});
+							}
+
+						});
+
+		/*]]>*/
+	</script>
+
+
+	<div ng-app="myApp" ng-controller="sqlCtrl">
+
+		<form name="myForm">
+
+			<div class="box2" id="mainContent">
+			
+			    <h2> The problems to solve are available <a href="pdfreport">here</a>.  Please open it in a new window so you have them available while working</h2>
+			
+				<h2>Your randomly-generated ID is: {{data.participant}}.
+				<br>Please write this down so that you can enter it in a post-task survey later.</h2>
+				
+
+				<h2>Please select the problem you're working on</h2>
+				<select ng-model="data.problem" name="source" id="source"
+					width="200" style="width: 200px" class="form-control" required>
+					<option ng-repeat="table in tables">{{table.problemName}}</option>
+				</select> <br>
+
+				<h2>Please enter your proposed query</h2>
+				<textarea rows="1" cols="100" ng-model="data.query" required>Enter your query here</textarea>
+
+				<br> <input type="submit" value="Submit Query"
+					ng-disabled="myForm.$invalid && (querySuccessful===true && answeredPreference===false)"
+					ng-click="submit()" />
+
+			</div>
+
+
+
+			<div ng-if="querySuccessful != null && querySuccessful===true">
+
+				{{successMessage}}</div>
+
+
+			<div ng-if="querySuccessful != null && querySuccessful != true">
+
+				<div ng-if="tableOutput != null">
+					<div class="box2">
+						<div class="box2">Unfortunately, your proposed query didn't
+							solve the problem. {{errorMessage}}</div>
+
+
+
+						<br> The table to select from:
+						<tt>{{sourceTableName}}</tt>
+						<table border="1">
+							<tr ng-repeat="row in sourceTable track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+
+					<div class="box">
+						The expected output {{destinationTableName}}:
+						<table border="1">
+							<tr ng-repeat="row in destTable track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+					<div class="box">
+
+						The output returned from your query was:
+						<table border="1">
+							<tr ng-repeat="row in tableOutput track by $index">
+								<td ng-repeat="cell in row track by $index">{{cell}}</td>
+							</tr>
+						</table>
+
+					</div>
+
+					<br> Please try again.
+
+
+				</div>
+				<div ng-if="errorMessage != null && tableOutput == null">
+					Unfortunately, there was an error in your SQL syntax. The error
+					message generated was:
+					<tt>{{errorMessage}}</tt>
+				</div>
+
+				<div ng-if="canRequestToVote != null && canRequestToVote == true">
+					<input type="submit" value="I'm tired of this problem"
+						ng-click="tired()">
+
+				</div>
+
+
+
+			</div>
+		</form>
+
+		<div
+			ng-if="serverResponse.voting != null && serverResponse.voting == true"
+			class="d-flex justify-content-center my-4">
+
+			<div ng-if="answeredPreference===false" ng-cloak>
+				<br> <i>We have several alternative queries which also solve
+					this problem. Please indicate how easy each query is to understand:</i>
+
+
+				<div id="votingOptions">
+
+
+
+					<div id="otherCorrect" ng-if="serverResponse.votingOptions.displayA">
+
+						<br> <strong>Query A:</strong> <font size="5"><code>{{serverResponse.votingOptions.correctQuery}}</code></font>
+						<br>
+						<div class="d-flex justify-content-center my-4">
+							<span class="font-weight-bold indigo-text mr-2 mt-1">Very
+								Difficult</span>
+							<form class="range-field w-15">
+								<input ng-model="votingAnswers.otherScore" class="border-0"
+									type="range" min="1" max="7" />
+							</form>
+							<span class="font-weight-bold indigo-text ml-2 mt-1">Very
+								Easy</span>
+						</div>
+						<div>
+							<i>Selected Rating: {{votingAnswers.otherScore}}</i><br>
+						</div>
+
+
+					</div>
+
+
+
+					<div id="otherRepaired" ng-if="serverResponse.votingOptions.displayB">
+						<br> <strong>Query B: </strong> <font size="5"><code>{{serverResponse.votingOptions.repairedQuery}}</code></font>
+						<br>
+						<div class="d-flex justify-content-center my-4">
+							<span class="font-weight-bold indigo-text mr-2 mt-1">Very
+								Difficult</span>
+							<form class="range-field w-15">
+								<input ng-model="votingAnswers.repairedScore" class="border-0"
+									type="range" min="1" max="7" />
+							</form>
+							<span class="font-weight-bold indigo-text ml-2 mt-1">Very
+								Easy</span>
+						</div>
+						<div>
+							<i>Selected Rating: {{votingAnswers.repairedScore}}</i><br>
+						</div>
+
+					</div>
+
+
+					<div id="myCorrect"
+						ng-if="serverResponse.votingOptions.displayC">
+						<br> <strong>Query C: </strong> <font size="5"><code>{{serverResponse.votingOptions.myCorrect}}</code></font>
+						<br>
+						<div class="d-flex justify-content-center my-4">
+							<span class="font-weight-bold indigo-text mr-2 mt-1">Very
+								Difficult</span>
+							<form class="range-field w-15">
+								<input ng-model="votingAnswers.myCorrectScore" class="border-0"
+									type="range" min="1" max="7" />
+							</form>
+							<span class="font-weight-bold indigo-text ml-2 mt-1">Very
+								Easy</span>
+						</div>
+						<div>
+							<i>Selected Rating: {{votingAnswers.myCorrectScore}}</i><br>
+						</div>
+
+					</div>
+
+					<div id="myRepaired" ng-if="serverResponse.votingOptions.displayD">
+						<br> <strong>Query D: </strong> <font size="5"><code>{{serverResponse.votingOptions.myRepaired}}</code></font>
+						<br>
+						<div class="d-flex justify-content-center my-4">
+							<span class="font-weight-bold indigo-text mr-2 mt-1">Very
+								Difficult</span>
+							<form class="range-field w-15">
+								<input ng-model="votingAnswers.myRepairedScore" class="border-0"
+									type="range" min="1" max="7" />
+							</form>
+							<span class="font-weight-bold indigo-text ml-2 mt-1">Very
+								Easy</span>
+						</div>
+						<div>
+							<i>Selected Rating: {{votingAnswers.myRepairedScore}}</i><br>
+						</div>
+
+					</div>
+				</div>
+
+				<br> <i>Explain your vote, if you'd like. This part is
+					optional</i> <br>
+
+				<textarea rows="1" cols="100" ng-model="votingAnswers.explanation"></textarea>
+
+				<br> <input style="text-align: center" type="submit"
+					value="Submit Preference" ng-click="submitPref()">
+			</div>
+
+			<div ng-if="answeredPreference===true">
+				<br>Thanks for voting! <br>Please move on to the next one
+			</div>
+		</div>
+
+
+
+	</div>
+</body>
+</html>
